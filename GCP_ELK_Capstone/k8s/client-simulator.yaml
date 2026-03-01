@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: client-simulator
+  namespace: default
+  labels:
+    app: client-simulator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: client-simulator
+  template:
+    metadata:
+      labels:
+        app: client-simulator
+    spec:
+      tolerations:
+      - key: "CriticalAddonsOnly"
+        operator: "Exists"
+        effect: "NoSchedule"
+      containers:
+      - name: client-simulator
+        image: <AWS_ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/client-simulator:latest
+        imagePullPolicy: Always
+        env:
+        - name: GATEWAY_URL
+          value: "http://gateway-service:8000"
+        - name: SIMULATION_MODE
+          value: "continuous"
+        resources:
+          limits:
+            memory: "256Mi"
+            cpu: "250m"
+          requests:
+            memory: "128Mi"
+            cpu: "100m"

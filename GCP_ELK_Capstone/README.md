@@ -1,399 +1,526 @@
-# 🌍 AI Travel Itinerary Planner
+# Enterprise AI Travel Agent - Microservices Architecture
 
-An intelligent travel planning application powered by Large Language Models (LLMs) that generates personalized day trip itineraries based on your destination and interests. Built with Streamlit, LangChain, and Groq API, deployed on AWS EKS with comprehensive ELK stack logging.
+An enterprise-grade travel booking platform powered by AI, built with a microservices architecture. Features intelligent itinerary generation, payment processing, fraud detection, and comprehensive observability.
 
 ![Python](https://img.shields.io/badge/python-3.10-blue)
-![Streamlit](https://img.shields.io/badge/streamlit-1.x-red)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.109-green)
 ![AWS](https://img.shields.io/badge/AWS-EKS-orange)
 ![Kubernetes](https://img.shields.io/badge/kubernetes-1.28-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
+![Microservices](https://img.shields.io/badge/architecture-microservices-brightgreen)
 
 ---
 
-## ✨ Features
+## Overview
 
-- 🤖 **AI-Powered Itineraries**: Uses Groq's LLama 3.3 70B model for intelligent travel planning
-- 🎨 **User-Friendly Interface**: Clean Streamlit web interface
-- 🔍 **Personalized Suggestions**: Tailored recommendations based on your interests
-- 📊 **Comprehensive Logging**: Full ELK stack (Elasticsearch, Logstash, Kibana, Filebeat)
-- ☁️ **Cloud-Native**: Kubernetes deployment on AWS EKS
-- 🐳 **Containerized**: Docker-based deployment
-- 🔄 **Scalable**: Ready for production scaling
+This application transforms a simple travel itinerary generator into a production-ready, enterprise-grade system using microservices architecture. It demonstrates industry best practices including:
 
----
-
-## 🚀 Quick Demo
-
-1. Enter your destination city (e.g., "New York", "Paris", "Tokyo")
-2. List your interests (e.g., "museums, food, nature")
-3. Click "Generate Itinerary"
-4. Receive a personalized day trip plan instantly!
+- Service-oriented architecture with 7 microservices
+- Synchronous and asynchronous communication patterns
+- Event-driven analytics
+- Fraud detection in payment processing
+- Message queue-based notifications
+- Comprehensive observability with ELK stack
+- Automated load testing
 
 ---
 
-## 🏗️ Architecture
+## Architecture
+
+### High-Level Architecture
 
 ```
-┌─────────────┐
-│   User      │
-└──────┬──────┘
-       │
-       ▼
-┌──────────────────┐      ┌───────────────┐
-│  Streamlit App   │─────→│  Groq LLM API │
-│  (Port 8501)     │      │  (External)   │
-└──────┬───────────┘      └───────────────┘
-       │ Logs
-       ▼
-┌──────────────────┐
-│  ELK Stack       │
-│  ├─ Filebeat     │ (Collect)
-│  ├─ Logstash     │ (Process)
-│  ├─ Elasticsearch│ (Store)
-│  └─ Kibana       │ (Visualize)
-└──────────────────┘
+Internet → API Gateway → Booking Service → Payment Service → Fraud Service
+                ↓                                    ↓
+         Analytics Service                    RabbitMQ Queue
+                                                     ↓
+                                          Notification Service
+
+                            Client Simulator (Load Testing)
 ```
 
-**Detailed Architecture**: See [ARCHITECTURE.md](ARCHITECTURE.md)
+### Microservices Overview
+
+| Service | Port | Purpose | Dependencies |
+|---------|------|---------|--------------|
+| **Gateway Service** | 8000 | API Gateway, request routing | Booking, Analytics |
+| **Booking Service** | 8001 | Itinerary creation, booking management | Payment, Groq LLM |
+| **Payment Service** | 8002 | Payment processing | Fraud, RabbitMQ |
+| **Fraud Service** | 8003 | Fraud detection and risk scoring | None |
+| **Notification Service** | 8004 | Async notifications (email/SMS/push) | RabbitMQ |
+| **Analytics Service** | 8005 | Event tracking and analytics | None |
+| **Client Simulator** | N/A | Automated load testing | Gateway |
+
+**Supporting Infrastructure**:
+- **RabbitMQ**: Message broker for async communication
+- **Supabase**: PostgreSQL database with RLS
+- **ELK Stack**: Logging and monitoring
+- **AWS EKS**: Kubernetes orchestration
+
+**Detailed Architecture**: See [MICROSERVICES_ARCHITECTURE.md](MICROSERVICES_ARCHITECTURE.md)
 
 ---
 
-## 📋 Prerequisites
+## Features
 
-- **AWS Account** with appropriate IAM permissions
-- **GROQ API Key** - Get from [Groq Console](https://console.groq.com)
-- **Basic Tools**:
-  - Docker
-  - kubectl
-  - eksctl
-  - AWS CLI (configured)
+### Functional Features
+- AI-powered travel itinerary generation (Groq LLM)
+- User account management
+- Booking and payment processing
+- Real-time fraud detection
+- Automated notifications
+- Comprehensive analytics and reporting
+
+### Technical Features
+- RESTful API design
+- Service-to-service communication (HTTP)
+- Asynchronous messaging (RabbitMQ)
+- Database persistence with RLS
+- Structured JSON logging
+- Health checks and probes
+- Horizontal scalability
+- Container orchestration
 
 ---
 
-## 🎯 AWS Deployment (No GCP Required!)
+## Prerequisites
 
-### ✅ Feasibility: **100% Compatible with AWS**
+### Required Accounts
+- **AWS Account** with EKS access
+- **Supabase Account** (free tier works)
+- **Groq API Key** (free tier available)
 
-This project was originally designed for GCP but contains **zero GCP-specific dependencies**. All Kubernetes manifests and Docker configurations work seamlessly on AWS EKS.
+### Required Tools
+- Docker
+- kubectl (v1.28+)
+- eksctl
+- AWS CLI (configured)
+- curl/httpie (for testing)
 
-### Quick Start
+### EKS Cluster
+```bash
+eksctl create cluster \
+  --name ai-travel-agent \
+  --region ap-south-1 \
+  --node-type t3.medium \
+  --nodes 2 \
+  --managed
+```
+
+---
+
+## Quick Start
+
+### 1. Set Environment Variables
 
 ```bash
-# 1. Clone repository
-git clone <repo-url>
-cd AI_Travel_Agent
-
-# 2. Run automated deployment
-chmod +x deploy-to-aws.sh
-./deploy-to-aws.sh
-
-# 3. Get access URLs
-kubectl get svc streamlit-service          # Streamlit app
-kubectl get nodes -o wide                  # Kibana: http://<NODE_IP>:30601
+export GROQ_API_KEY="your_groq_api_key"
+export SUPABASE_URL="https://xxxxx.supabase.co"
+export SUPABASE_SERVICE_ROLE_KEY="your_service_role_key"
+export AWS_REGION="ap-south-1"
 ```
 
-### Detailed Setup
+### 2. Deploy Microservices
 
-For complete step-by-step instructions:
-- 📖 **[AWS Deployment Guide](AWS_DEPLOYMENT_GUIDE.md)** - Full deployment walkthrough
-- ⚡ **[Quick Reference](QUICK_REFERENCE.md)** - Command cheat sheet
-- 📊 **[ELK Access Guide](ELK_ACCESS_GUIDE.md)** - Log viewing tutorial
-
----
-
-## 🔌 Port Configuration
-
-| Service | Port | Access Type | Purpose |
-|---------|------|-------------|---------|
-| Streamlit | 80 (→8501) | LoadBalancer | Web UI |
-| Kibana | 30601 | NodePort | Logs UI |
-| Elasticsearch | 9200 | ClusterIP | Log Storage |
-| Logstash | 5044 | ClusterIP | Log Processing |
-
-**Security Note**: Only ports 80 (Streamlit) and 30601 (Kibana) are externally accessible.
-
----
-
-## 📊 Accessing Application Logs (Your Main Goal!)
-
-### Step 1: Access Kibana
 ```bash
-# Get worker node IP
+chmod +x deploy-microservices.sh
+./deploy-microservices.sh
+```
+
+This script will:
+- Create ECR repositories
+- Build and push Docker images
+- Deploy RabbitMQ
+- Deploy all microservices
+- Deploy client simulator
+
+### 3. Get Gateway URL
+
+```bash
+kubectl get svc gateway-service
+
+GATEWAY_URL=$(kubectl get svc gateway-service -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+echo "Gateway URL: http://$GATEWAY_URL"
+```
+
+---
+
+## API Usage Examples
+
+### Create Itinerary
+
+```bash
+curl -X POST http://$GATEWAY_URL/api/itineraries \
+  -H "Content-Type: application/json" \
+  -d '{
+    "city": "Paris",
+    "interests": "museums, art, wine",
+    "user_email": "test@example.com",
+    "user_name": "Test User"
+  }'
+```
+
+Response:
+```json
+{
+  "itinerary_id": "550e8400-e29b-41d4-a716-446655440000",
+  "user_id": "550e8400-e29b-41d4-a716-446655440001",
+  "city": "Paris",
+  "content": "Day Trip Itinerary for Paris:\n\n9:00 AM - Visit the Louvre Museum...",
+  "status": "draft"
+}
+```
+
+### Create Booking
+
+```bash
+curl -X POST http://$GATEWAY_URL/api/bookings \
+  -H "Content-Type: application/json" \
+  -d '{
+    "itinerary_id": "550e8400-e29b-41d4-a716-446655440000",
+    "user_id": "550e8400-e29b-41d4-a716-446655440001",
+    "payment_method": "credit_card"
+  }'
+```
+
+Response:
+```json
+{
+  "booking_id": "550e8400-e29b-41d4-a716-446655440002",
+  "payment_id": "550e8400-e29b-41d4-a716-446655440003",
+  "status": "confirmed",
+  "fraud_check": {
+    "fraud_check_id": "550e8400-e29b-41d4-a716-446655440004",
+    "risk_score": 25.5,
+    "status": "approved",
+    "reason": "No risk factors detected"
+  }
+}
+```
+
+### Get Booking Details
+
+```bash
+curl http://$GATEWAY_URL/api/bookings/{booking_id}
+```
+
+---
+
+## Service Flow Diagrams
+
+### Booking Flow
+
+```
+1. User → Gateway: POST /api/bookings
+2. Gateway → Booking Service: Create booking
+3. Booking Service → Payment Service: Process payment
+4. Payment Service → Fraud Service: Check fraud
+5. Fraud Service → Payment Service: Risk score
+6. Payment Service → RabbitMQ: Publish notification
+7. Notification Service ← RabbitMQ: Consume notification
+8. Notification Service → Supabase: Save notification
+9. Payment Service → Booking Service: Payment result
+10. Booking Service → Gateway: Booking result
+11. Gateway → Analytics Service: Track event
+12. Gateway → User: Final response
+```
+
+---
+
+## Project Structure
+
+```
+GCP_ELK_Capstone/
+├── services/
+│   ├── shared/                    # Shared utilities
+│   │   ├── database.py           # Supabase client
+│   │   ├── logger.py             # Structured logging
+│   │   ├── message_broker.py    # RabbitMQ client
+│   │   └── models.py             # Pydantic models
+│   │
+│   ├── gateway/                   # API Gateway
+│   │   ├── main.py
+│   │   ├── requirements.txt
+│   │   └── Dockerfile
+│   │
+│   ├── booking/                   # Booking Service
+│   │   ├── main.py
+│   │   ├── requirements.txt
+│   │   └── Dockerfile
+│   │
+│   ├── payment/                   # Payment Service
+│   │   ├── main.py
+│   │   ├── requirements.txt
+│   │   └── Dockerfile
+│   │
+│   ├── fraud/                     # Fraud Detection Service
+│   │   ├── main.py
+│   │   ├── requirements.txt
+│   │   └── Dockerfile
+│   │
+│   ├── notification/              # Notification Service
+│   │   ├── main.py
+│   │   ├── requirements.txt
+│   │   └── Dockerfile
+│   │
+│   ├── analytics/                 # Analytics Service
+│   │   ├── main.py
+│   │   ├── requirements.txt
+│   │   └── Dockerfile
+│   │
+│   └── client-simulator/          # Load Testing
+│       ├── main.py
+│       ├── requirements.txt
+│       └── Dockerfile
+│
+├── k8s/                           # Kubernetes manifests
+│   ├── rabbitmq.yaml
+│   ├── gateway-service.yaml
+│   ├── booking-service.yaml
+│   ├── payment-service.yaml
+│   ├── fraud-service.yaml
+│   ├── notification-service.yaml
+│   ├── analytics-service.yaml
+│   └── client-simulator.yaml
+│
+├── Legacy (Monolith):
+│   ├── app.py                     # Original Streamlit app
+│   ├── src/                       # Original source code
+│   ├── k8s-deployment.yaml       # Original deployment
+│   ├── elasticsearch.yaml
+│   ├── logstash.yaml
+│   ├── kibana.yaml
+│   └── filebeat.yaml
+│
+├── Documentation:
+│   ├── README.md                  # This file
+│   ├── MICROSERVICES_ARCHITECTURE.md
+│   ├── MICROSERVICES_DEPLOYMENT_GUIDE.md
+│   ├── AWS_DEPLOYMENT_GUIDE.md   # Legacy deployment
+│   ├── ARCHITECTURE.md            # Legacy architecture
+│   └── deploy-microservices.sh
+│
+└── Database:
+    └── Migration applied to Supabase
+```
+
+---
+
+## Monitoring & Observability
+
+### Health Checks
+
+```bash
+kubectl get pods -l app=gateway-service -o name | head -1 | \
+  xargs kubectl exec -it -- curl localhost:8000/health
+```
+
+All services expose `/health` endpoint returning:
+```json
+{"status": "healthy", "service": "<service-name>"}
+```
+
+### View Logs
+
+```bash
+kubectl logs -l app=gateway-service --tail=100 -f
+kubectl logs -l app=booking-service --tail=100 -f
+kubectl logs -l app=payment-service --tail=100 -f
+```
+
+### ELK Stack (if deployed)
+
+Access Kibana on port 30601:
+```bash
 kubectl get nodes -o wide
-
-# Open security group port 30601
-aws ec2 authorize-security-group-ingress \
-  --group-id <sg-id> \
-  --protocol tcp \
-  --port 30601 \
-  --cidr 0.0.0.0/0
-
-# Access Kibana
-http://<NODE_IP>:30601
 ```
 
-### Step 2: Configure Kibana
-1. Click "Explore on my own"
-2. Navigate to **Management → Index Patterns**
-3. Create pattern: `filebeat-*`
-4. Select time field: `@timestamp`
+Open: `http://<NODE_IP>:30601`
 
-### Step 3: View Logs
-1. Open **Discover** from menu
-2. Add filter: `kubernetes.container.name: "streamlit-container"`
-3. View real-time logs from your application!
+Filter logs by service:
+```
+kubernetes.labels.app: "gateway-service"
+```
 
-**Full Tutorial**: [ELK_ACCESS_GUIDE.md](ELK_ACCESS_GUIDE.md)
+### RabbitMQ Management UI
 
----
-
-## 🛠️ Local Development
-
-### Option 1: Direct Python
 ```bash
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -e .
-
-# Set environment variable
-export GROQ_API_KEY=your_api_key_here
-
-# Run application
-streamlit run app.py
+kubectl port-forward svc/rabbitmq 15672:15672
 ```
 
-### Option 2: Docker
+Open: http://localhost:15672 (guest/guest)
+
+### Analytics Dashboard
+
 ```bash
-# Build image
-docker build -t streamlit-app:latest .
-
-# Run container
-docker run -p 8501:8501 \
-  -e GROQ_API_KEY=your_api_key_here \
-  streamlit-app:latest
-```
-
-Access at: http://localhost:8501
-
----
-
-## 📂 Project Structure
-
-```
-AI_Travel_Agent/
-├── app.py                      # Main Streamlit application
-├── Dockerfile                  # Container configuration
-├── requirements.txt            # Python dependencies
-├── setup.py                    # Package setup
-│
-├── src/
-│   ├── core/
-│   │   └── planner.py         # Travel planning logic
-│   ├── chains/
-│   │   └── itinerary_chain.py # LLM chain configuration
-│   ├── config/
-│   │   └── config.py          # App configuration
-│   └── utils/
-│       ├── logger.py          # Logging utilities
-│       └── custom_exception.py # Error handling
-│
-├── Kubernetes Manifests:
-│   ├── k8s-deployment.yaml    # Streamlit app deployment
-│   ├── elasticsearch.yaml     # Log storage
-│   ├── logstash.yaml         # Log processing
-│   ├── kibana.yaml           # Log visualization
-│   └── filebeat.yaml         # Log collection
-│
-└── Documentation:
-    ├── AWS_DEPLOYMENT_GUIDE.md
-    ├── ELK_ACCESS_GUIDE.md
-    ├── QUICK_REFERENCE.md
-    ├── ARCHITECTURE.md
-    ├── DEPLOYMENT_SUMMARY.md
-    └── deploy-to-aws.sh
+kubectl get pods -l app=analytics-service -o name | head -1 | \
+  xargs kubectl exec -it -- curl localhost:8005/analytics/summary?days=7
 ```
 
 ---
 
-## 🔧 Configuration
+## Testing
 
-### Environment Variables
-- `GROQ_API_KEY` - Required for LLM API access
+### Manual Testing
 
-### Kubernetes Secrets
+See API examples above.
+
+### Automated Load Testing
+
+The client simulator runs continuously, generating realistic user traffic:
+
 ```bash
-kubectl create secret generic llmops-secrets \
-  --from-literal=GROQ_API_KEY=your_key_here
+kubectl logs -l app=client-simulator --tail=50 -f
+```
+
+You should see logs like:
+```
+{"timestamp": "2026-03-01T10:30:00Z", "service": "client-simulator", "level": "INFO", "message": "User 5 creating itinerary for Tokyo"}
+{"timestamp": "2026-03-01T10:30:05Z", "service": "client-simulator", "level": "INFO", "message": "User 5 completed booking: abc-123, Status: confirmed"}
+```
+
+### Verify Database
+
+Check Supabase dashboard:
+```sql
+SELECT COUNT(*) FROM bookings;
+SELECT COUNT(*) FROM payments;
+SELECT COUNT(*) FROM fraud_checks;
+SELECT COUNT(*) FROM notifications;
+SELECT COUNT(*) FROM analytics_events;
 ```
 
 ---
 
-## 📈 Scaling
+## Scaling
 
-### Horizontal Pod Autoscaling
+### Manual Scaling
+
 ```bash
-kubectl autoscale deployment streamlit-app \
+kubectl scale deployment gateway-service --replicas=5
+kubectl scale deployment booking-service --replicas=3
+```
+
+### Auto-scaling (HPA)
+
+```bash
+kubectl autoscale deployment gateway-service \
   --cpu-percent=70 \
-  --min=1 \
-  --max=5
+  --min=2 \
+  --max=10
 ```
-
-### Production Recommendations
-- **Streamlit**: 3+ replicas with HPA
-- **Elasticsearch**: 3-node cluster, 50GB+ per node
-- **Logstash**: 2+ replicas
-- **Kibana**: 2 replicas for HA
-- **Worker Nodes**: 3+ nodes across multiple AZs
 
 ---
 
-## 💰 Cost Estimate (AWS us-east-1)
+## Cost Estimate
 
-| Component | Monthly Cost |
-|-----------|-------------|
+| Component | Monthly Cost (ap-south-1) |
+|-----------|--------------------------|
 | EKS Control Plane | $73 |
 | 2x t3.medium nodes | $60 |
-| Load Balancer | $18 |
-| EBS Storage (2GB) | $0.20 |
-| ECR Storage | $0.10 |
-| **Total** | **~$155/month** |
+| LoadBalancer | $18 |
+| ECR Storage (~2GB) | $0.20 |
+| EBS (ELK + RabbitMQ) | $1 |
+| **Microservices Total** | **~$152/month** |
 
-💡 **Tip**: Use `eksctl delete cluster` when not in use to avoid charges.
+Add ~$3-5/month if keeping original monolith deployed.
 
 ---
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
-### Common Issues
+### Pods Not Starting
 
-**LoadBalancer Pending**
 ```bash
-# Wait 3-5 minutes for AWS to provision ELB
-kubectl describe svc streamlit-service
-```
-
-**Can't Access Kibana**
-```bash
-# Verify port 30601 is open in security group
-kubectl get svc kibana -n logging
-```
-
-**No Logs in Kibana**
-```bash
-# Check Filebeat pods
-kubectl get pods -n logging | grep filebeat
-kubectl logs -n logging daemonset/filebeat --tail=100
-```
-
-**Pod Crashes/Errors**
-```bash
-# Check pod status and logs
-kubectl get pods
 kubectl describe pod <pod-name>
-kubectl logs <pod-name> --tail=100
+kubectl logs <pod-name>
+```
+
+Common issues:
+- Image pull errors (check ECR permissions)
+- Missing secrets
+- Service dependencies not ready
+
+### Service Communication Errors
+
+```bash
+kubectl exec -it <pod-name> -- nslookup booking-service
+kubectl exec -it <pod-name> -- curl http://booking-service:8001/health
+```
+
+### RabbitMQ Connection Issues
+
+```bash
+kubectl logs -l app=rabbitmq
+kubectl logs -l app=notification-service | grep -i rabbitmq
 ```
 
 ---
 
-## 🧪 Testing
-
-### Test Streamlit App
-1. Navigate to LoadBalancer URL
-2. Enter city: "San Francisco"
-3. Enter interests: "technology, food, hiking"
-4. Click "Generate Itinerary"
-5. Verify AI-generated itinerary appears
-
-### Test ELK Logging
-1. Access Kibana on port 30601
-2. Create index pattern: `filebeat-*`
-3. Open Discover
-4. Search for: `message: "Generating itinerary"`
-5. Verify logs from your test appear
-
----
-
-## 🔐 Security
-
-- ✅ Secrets stored in Kubernetes Secrets
-- ✅ Network policies for pod-to-pod communication
-- ✅ Security groups restrict external access
-- ⚠️ Add authentication for Kibana in production
-- ⚠️ Use TLS/SSL for external endpoints
-
----
-
-## 📚 Documentation
+## Documentation
 
 | Document | Description |
 |----------|-------------|
-| [DEPLOYMENT_SUMMARY.md](DEPLOYMENT_SUMMARY.md) | High-level overview |
-| [AWS_DEPLOYMENT_GUIDE.md](AWS_DEPLOYMENT_GUIDE.md) | Complete deployment steps |
-| [ELK_ACCESS_GUIDE.md](ELK_ACCESS_GUIDE.md) | Log viewing tutorial |
-| [QUICK_REFERENCE.md](QUICK_REFERENCE.md) | Command cheat sheet |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | System architecture |
+| [MICROSERVICES_ARCHITECTURE.md](MICROSERVICES_ARCHITECTURE.md) | Complete architecture details |
+| [MICROSERVICES_DEPLOYMENT_GUIDE.md](MICROSERVICES_DEPLOYMENT_GUIDE.md) | Step-by-step deployment |
+| [AWS_DEPLOYMENT_GUIDE.md](AWS_DEPLOYMENT_GUIDE.md) | Legacy monolith deployment |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Legacy architecture |
 
 ---
 
-## 🤝 Contributing
+## Migration from Monolith
 
-Contributions are welcome! Please:
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Open a Pull Request
+The original Streamlit monolith is preserved in the repository. Key changes:
+
+**Before (Monolith)**:
+- Single Streamlit application
+- Direct LLM calls
+- No payment processing
+- No fraud detection
+- Basic logging
+
+**After (Microservices)**:
+- 7 independent services
+- RESTful APIs
+- Complete booking flow with payment
+- Fraud detection
+- Async notifications
+- Event-driven analytics
+- Message queue
+- Production-ready observability
 
 ---
 
-## 📄 License
+## Security
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
----
-
-## 👤 Author
-
-**Balaji Krishnan**
+- Row Level Security on all database tables
+- Kubernetes secrets for sensitive data
+- Service-to-service authentication via service role
+- Internal services not exposed externally
+- TLS termination at LoadBalancer (recommended in production)
 
 ---
 
-## 🙏 Acknowledgments
+## License
+
+MIT License
+
+---
+
+## Author
+
+Balaji Krishnan
+
+---
+
+## Acknowledgments
 
 - [Groq](https://groq.com) - Fast LLM inference
-- [LangChain](https://langchain.com) - LLM orchestration framework
-- [Streamlit](https://streamlit.io) - Web framework
-- [Elastic](https://elastic.co) - ELK stack components
+- [FastAPI](https://fastapi.tiangolo.com) - Modern web framework
+- [Supabase](https://supabase.com) - Database and auth platform
+- [RabbitMQ](https://www.rabbitmq.com) - Message broker
 - AWS - Cloud infrastructure
+- Elastic - ELK stack components
 
 ---
 
-## 🔗 Related Links
-
-- [Groq Documentation](https://console.groq.com/docs)
-- [LangChain Documentation](https://python.langchain.com/docs/get_started/introduction)
-- [Streamlit Documentation](https://docs.streamlit.io)
-- [AWS EKS Documentation](https://docs.aws.amazon.com/eks/)
-- [Elastic Stack on Kubernetes](https://www.elastic.co/guide/en/cloud-on-k8s/current/index.html)
-
----
-
-## 📞 Support
-
-For issues and questions:
-- 📖 Check the documentation files
-- 🐛 Open a GitHub issue
-- 💬 Review troubleshooting section
-
----
-
-## ⭐ Star This Repository
-
-If you find this project useful, please consider giving it a star! ⭐
-
----
-
-**Happy Traveling! 🌍✈️**
+**Enterprise-Ready Travel Booking Platform**

@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analytics-service
+  namespace: default
+  labels:
+    app: analytics-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: analytics-service
+  template:
+    metadata:
+      labels:
+        app: analytics-service
+    spec:
+      tolerations:
+      - key: "CriticalAddonsOnly"
+        operator: "Exists"
+        effect: "NoSchedule"
+      containers:
+      - name: analytics-service
+        image: <AWS_ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/analytics-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8005
+        env:
+        - name: SUPABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: microservices-secrets
+              key: SUPABASE_URL
+        - name: SUPABASE_SERVICE_ROLE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: microservices-secrets
+              key: SUPABASE_SERVICE_ROLE_KEY
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8005
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8005
+          initialDelaySeconds: 10
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: analytics-service
+  namespace: default
+spec:
+  type: ClusterIP
+  selector:
+    app: analytics-service
+  ports:
+  - port: 8005
+    targetPort: 8005

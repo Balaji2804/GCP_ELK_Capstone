@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: booking-service
+  namespace: default
+  labels:
+    app: booking-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: booking-service
+  template:
+    metadata:
+      labels:
+        app: booking-service
+    spec:
+      tolerations:
+      - key: "CriticalAddonsOnly"
+        operator: "Exists"
+        effect: "NoSchedule"
+      containers:
+      - name: booking-service
+        image: <AWS_ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/booking-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8001
+        env:
+        - name: PAYMENT_SERVICE_URL
+          value: "http://payment-service:8002"
+        - name: GROQ_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: microservices-secrets
+              key: GROQ_API_KEY
+        - name: SUPABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: microservices-secrets
+              key: SUPABASE_URL
+        - name: SUPABASE_SERVICE_ROLE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: microservices-secrets
+              key: SUPABASE_SERVICE_ROLE_KEY
+        - name: RABBITMQ_HOST
+          value: "rabbitmq"
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 10
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: booking-service
+  namespace: default
+spec:
+  type: ClusterIP
+  selector:
+    app: booking-service
+  ports:
+  - port: 8001
+    targetPort: 8001
