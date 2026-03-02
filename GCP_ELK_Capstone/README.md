@@ -29,6 +29,8 @@ This application transforms a simple travel itinerary generator into a productio
 ### High-Level Architecture
 
 ```
+Streamlit UI (Frontend) ────────┐
+                                ↓
 Internet → API Gateway → Booking Service → Payment Service → Fraud Service
                 ↓                                    ↓
          Analytics Service                    RabbitMQ Queue
@@ -49,6 +51,7 @@ Internet → API Gateway → Booking Service → Payment Service → Fraud Servi
 | **Notification Service** | 8004 | Async notifications (email/SMS/push) | RabbitMQ |
 | **Analytics Service** | 8005 | Event tracking and analytics | None |
 | **Client Simulator** | N/A | Automated load testing | Gateway |
+| **Streamlit UI** | 8501 | Web frontend for users | Gateway |
 
 **Supporting Infrastructure**:
 - **RabbitMQ**: Message broker for async communication
@@ -133,16 +136,68 @@ This script will:
 - Deploy all microservices
 - Deploy client simulator
 
-### 3. Get Gateway URL
+### 3. Deploy Streamlit Frontend
 
 ```bash
-kubectl get svc gateway-service
+# Build and push Streamlit image
+docker build -t streamlit-app:latest .
+docker tag streamlit-app:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/streamlit-app:latest
+docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/streamlit-app:latest
 
+# Deploy to Kubernetes
+kubectl apply -f k8s-deployment.yaml
+```
+
+### 4. Access the Application
+
+```bash
+# Get Streamlit UI URL
+kubectl get svc streamlit-service
+STREAMLIT_URL=$(kubectl get svc streamlit-service -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+echo "Streamlit UI: http://$STREAMLIT_URL"
+
+# Get Gateway API URL (optional - for direct API access)
+kubectl get svc gateway-service
 GATEWAY_URL=$(kubectl get svc gateway-service -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-echo "Gateway URL: http://$GATEWAY_URL"
+echo "Gateway API: http://$GATEWAY_URL"
 ```
 
 ---
+
+## Usage
+
+### Option 1: Streamlit Web UI (Recommended for Users)
+
+1. **Access the UI**:
+   ```
+   http://<STREAMLIT_URL>
+   ```
+
+2. **Login**: Enter your email and name in the sidebar
+
+3. **Create Itinerary** (Tab 1):
+   - Enter city: "Paris"
+   - Enter interests: "museums, art, wine"
+   - Click "Generate Itinerary"
+   - View AI-generated itinerary
+
+4. **Book Trip** (Tab 2):
+   - Review itinerary preview
+   - Select payment method
+   - Agree to terms and conditions
+   - Click "Complete Booking"
+   - View booking confirmation and fraud check results
+
+5. **View Bookings** (Tab 3):
+   - See all your bookings
+   - Expand for details
+   - Click "View Full Details" for complete data
+
+For complete frontend documentation, see [FRONTEND_GUIDE.md](FRONTEND_GUIDE.md)
+
+---
+
+### Option 2: Direct API Access (For Developers)
 
 ## API Usage Examples
 
@@ -460,8 +515,12 @@ kubectl logs -l app=notification-service | grep -i rabbitmq
 
 | Document | Description |
 |----------|-------------|
-| [MICROSERVICES_ARCHITECTURE.md](MICROSERVICES_ARCHITECTURE.md) | Complete architecture details |
+| [COMPLETE_SYSTEM_OVERVIEW.md](COMPLETE_SYSTEM_OVERVIEW.md) | Complete system guide with all components |
+| [FRONTEND_GUIDE.md](FRONTEND_GUIDE.md) | Streamlit UI documentation and usage |
+| [MICROSERVICES_ARCHITECTURE.md](MICROSERVICES_ARCHITECTURE.md) | Backend architecture details |
 | [MICROSERVICES_DEPLOYMENT_GUIDE.md](MICROSERVICES_DEPLOYMENT_GUIDE.md) | Step-by-step deployment |
+| [MIGRATION_SUMMARY.md](MIGRATION_SUMMARY.md) | Monolith to microservices migration |
+| [ELK_ACCESS_GUIDE.md](ELK_ACCESS_GUIDE.md) | Log viewing with Kibana |
 | [AWS_DEPLOYMENT_GUIDE.md](AWS_DEPLOYMENT_GUIDE.md) | Legacy monolith deployment |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Legacy architecture |
 

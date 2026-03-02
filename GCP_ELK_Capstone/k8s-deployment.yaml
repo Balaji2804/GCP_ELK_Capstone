@@ -24,6 +24,9 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 8501
+          env:
+            - name: GATEWAY_URL
+              value: "http://gateway-service:8000"
           envFrom:
             - secretRef:
                 name: llmops-secrets
