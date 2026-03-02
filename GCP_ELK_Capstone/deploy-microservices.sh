@@ -112,25 +112,32 @@ echo "Deployment Complete!"
 echo "=========================================="
 echo ""
 
-print_info "Getting service URLs..."
+
+print_info "Setting up port-forwarding for gateway-service (port 8080) on all interfaces..."
+kubectl port-forward svc/gateway-service 8080:80 --address 0.0.0.0 > /tmp/gateway-pf.log 2>&1 &
+sleep 5
+
+print_info "Getting EC2 public IP..."
+EC2_PUBLIC_IP=$(curl -s http://checkip.amazonaws.com)
+
 echo ""
-
-GATEWAY_LB=$(kubectl get svc gateway-service -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "Pending...")
-if [ "$GATEWAY_LB" == "Pending..." ]; then
-    print_warning "Gateway LoadBalancer is still provisioning. Run this command to check status:"
-    echo "kubectl get svc gateway-service"
-else
-    echo "Gateway API URL: http://$GATEWAY_LB"
-fi
-
+echo "=========================================="
+echo "Deployment Complete!"
+echo "=========================================="
+echo ""
+print_info "Gateway API is accessible at:"
+echo "  http://$EC2_PUBLIC_IP:8080"
 echo ""
 print_info "Check all pods:"
-echo "kubectl get pods"
+echo "  kubectl get pods"
 echo ""
 print_info "Check all services:"
-echo "kubectl get svc"
+echo "  kubectl get svc"
 echo ""
 print_info "View logs from a service:"
-echo "kubectl logs -l app=gateway-service --tail=100"
+echo "  kubectl logs -l app=gateway-service --tail=100"
+echo ""
+print_info "Check port-forward logs:"
+echo "  tail /tmp/gateway-pf.log"
 echo ""
 echo "=========================================="
